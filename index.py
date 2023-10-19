@@ -1,8 +1,12 @@
 import socket
+import request
+
+
 class TCPServer:
-    def __init__(self, host="127.0.0.1", port=8000):
+    def __init__(self, host="127.0.0.1", port=8000, dir="./pages/"):
         self.host = host
         self.port = port
+        self.dir = dir
 
     def start(self):
         # Creating the socket
@@ -19,36 +23,69 @@ class TCPServer:
 
             # Get the client request and only read 1024 byte
             request = client_connection.recv(1024).decode()
-            print(request)
             
             response = self.handleRequest(request)
-            fin = open("pages/index.html")
-            content = fin.read()
-
-            fin.close()
+            
             # Send HTTP response
-            response = 'HTTP/1.0 200 OK\n\n %s' %content
-            client_connection.sendall(response.encode())
+            client_connection.sendall(response.format_to_send().encode())
             client_connection.close()
 
-    def parse_request(self, req):
-        splitItems = req.split("\r\n")
+    def handleRequest(self, req_string):
+        req = request.Request(req_string)
+        res = request.Response()
+
+        if (req.http_method == "GET"):
+            self.handle_get_request(req, res)
+        elif (req.http_method == "POST"):
+            self.handle_post_request(req, res)
+        elif (req.http_method == "PUT"):
+            self.handle_post_request(req, res)
+        elif (req.http_method == "DELETE"):
+            self.handle_post_request(req, res)
         
-    def handleRequest(self, req):
-        import request
-        reqClass = request.Request(req)
-        print(reqClass.request_method)
+        return res
+    
+    def handle_get_request(self, req, res):
+        print("Handling Get Request")
+
+        # prevent the user accessing other directory than the intented one
+        if (".." in req.http_request_directory or "~" in req.http_request_directory): 
+            res.http_code = "400"
+            res.http_status = "Bad Request"
+            return
+       
+        print(req.http_request_directory.split('/'))
+        # The request uri does not have a file extension, so we are going
+        # to get the html file
+        if (req.http_request_directory.split('/')[-1].count(".") < 1):
+            req.http_request_directory = req.http_request_directory + ".html"
+
+        fin = open(req.http_request_directory)
+        content = fin.read()
+
+        res.http_body = content
+        fin.close()
+        return
+
+    def handle_post_request(self, req, res):
+        print("Handling post Request")
+
+    def handle_put_request(self, req, res):
+        print("Handling put Request")
+
+    def handle_delete_request(self, req, res):
+        print("Handling delete Request")
 
     def close(self):
         self.server_socket.close()
         print("Socket close ...")
 
-
+# Run the program
 if __name__ == "__main__":
     # Define the socket host and port 
     SERVER_HOST = '0.0.0.0'
     SERVER_PORT = 8000 
-    
+    WEB_DIRECTORY = "./pages/"
     server = TCPServer()
     server.start()
 
