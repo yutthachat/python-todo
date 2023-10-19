@@ -38,8 +38,11 @@ class Request:
             for header in split_lines[1:empty_line_index-1]:
                 current_header_split = header.split(":")
                 self._http_headers[current_header_split[0]] = ":".join(current_header_split[1:]).strip()
-            second_empty_line_index = split_lines[empty_line_index:].index("")
-            self._http_body = "\r\n".join(split_lines[second_empty_line_index:-1])
+            #print(f"split_lines {split_lines[1:]}")
+            #print(f"\n\nEmpty Line Index: {empty_line_index} {empty_line_index + 1}")
+            #print(f"\nCount {len(split_lines)}")
+            print(f"split_line2 {split_lines[empty_line_index + 2:]}")
+            self._http_body = "\r\n".join(split_lines[empty_line_index + 2:])
         
     @property
     def http_method(self):

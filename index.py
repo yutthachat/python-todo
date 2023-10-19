@@ -23,7 +23,7 @@ class TCPServer:
 
             # Get the client request and only read 1024 byte
             request = client_connection.recv(1024).decode()
-            
+            #print(f"request: {request}")
             response = self.handleRequest(request)
             
             # Send HTTP response
@@ -54,21 +54,51 @@ class TCPServer:
             res.http_status = "Bad Request"
             return
        
-        print(req.http_request_directory.split('/'))
+        #print(req.http_request_directory.split('/'))
         # The request uri does not have a file extension, so we are going
         # to get the html file
-        if (req.http_request_directory.split('/')[-1].count(".") < 1):
+        dir_path = req.http_request_directory.split('/')
+        if (dir_path[-1] == ''):
+            req.http_request_directory = req.http_request_directory + "index.html"
+        elif ('.' not in dir_path[-1]):
             req.http_request_directory = req.http_request_directory + ".html"
 
-        fin = open(req.http_request_directory)
-        content = fin.read()
-
-        res.http_body = content
-        fin.close()
+        try:
+            fin = open(self.dir + req.http_request_directory)
+            content = fin.read()
+            res.http_body = content
+            fin.close()
+        except FileNotFoundError:
+            res.http_code = 404
+            res.http_status = "File not found"
+            res.http_body = "<h1>File not found<h1>"
         return
 
     def handle_post_request(self, req, res):
         print("Handling post Request")
+        print(req.http_body)
+        if (req.http_request_directory == "/create"):
+            item = self.string_to_object(req.http_body)
+            print("inside the create dire")
+            if ("f_item" in item):
+                db = open("./db.txt", "a")
+                db.write(item["f_item"])
+                db.close()
+                res.http_body = f"<h2>Successfully added {item['f_item']}</h2>"
+                return res
+            res.http_code = 400
+            res.http_status = "Bad Request"
+            res.http_body = f"<h2>Unable to add the item<h2>"
+    def string_to_object(self, val):
+        all_items = val.split('\r\n')
+        obj = {}
+
+        for item in all_items:
+            if ("=" in item):
+                equal_index = item.index("=")
+                obj[item[:equal_index]] = item[equal_index + 1:]
+
+        return obj
 
     def handle_put_request(self, req, res):
         print("Handling put Request")
